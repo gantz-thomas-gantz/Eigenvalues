@@ -97,34 +97,46 @@ end
 
 
 
-function Deflation(A, x, eps, neig)
+function Deflation(A::AbstractMatrix{T}, x::Vector{T}, eps::T, neig::Int) where T
     n_rows, n_cols = size(A)
-    Λ = zeros(Float64, neig)  # Eigenvalue vector
-    Y = zeros(Float64, neig, n_cols)  # Eigenvector matrix (one column per eigenvector)
+    Λ = zeros(T, neig)  # Eigenvalue vector
+    Y = zeros(T, neig, n_cols)  # Eigenvector matrix (one column per eigenvector)
+    P = zeros(T, n_rows, n_cols)  # Initialize deflation matrix
 
-    P = zeros(Float64, n_rows, n_cols)  # Initialize deflation matrix (non-square)
-    
     for n in 1:neig
-		
-		y = x / norm(x)
-		v = CG(A,y-A*P*y,1e-20) 
-		lambda = dot(y, v)  
-		while norm(v - lambda * y) > eps
-			y = v
-			y = y / norm(y)
-			v = CG(A,y-A*P*y,1e-20) 
-			lambda = dot(y, v)
-		end
+        # Initial vector normalization
+        y = x / norm(x)
+        
+        # Solve for v using the CG method with more reasonable tolerance
+        v = CG(A, y - A * P * y, 1e-8)
+        
+        # Compute initial eigenvalue estimate (Rayleigh quotient)
+        lambda = dot(y, v)
+        
+        # Convergence loop with relative tolerance check
+        while norm(v - lambda * y) / norm(v) > eps
+            y = v / norm(v)  # Re-normalize y
+            v = CG(A, y - A * P * y, 1e-8)
+            lambda = dot(y, v)
+        end
 
-        # Compute the eigenvalue and eigenvector for the current iteration using power_method
-        Λ[n], Y[n, :] = 1/lambda,y
-		println(lambda)
-        # Update the deflation matrix P
-        P += (1/lambda) .* (y * y')  # Outer product to update the deflation matrix
+        # Store eigenvalue and eigenvector
+        Λ[n], Y[n, :] = 1 / lambda, y
+        println(lambda)
+
+		# Check if lambda is too small, skip deflation if so
+		if abs(lambda) < eps
+			println("Warning: Eigenvalue too small, skipping deflation.")
+			continue
+		end
+        
+        # Update the deflation matrix P using the outer product
+        P += lambda * (y * y')  # Outer product to update deflation matrix
     end
 
     return (Λ, Y)
 end
+
 
 function DeflationX(A::AbstractMatrix, x::Vector, εtol::Float64, neig::Int)
     n_rows, n_cols = size(A)
@@ -152,10 +164,9 @@ end
 # MAIN
 # #####################
 function main()
-	N = 8
+	N = 50
 	M = rand_schrodinger_1D(N)
 	eigenvalues = eigvals(M) 
-	println(eigenvalues)
 	
 	### Exercise 2 : TEST CG ###
 	b = ones(N)
