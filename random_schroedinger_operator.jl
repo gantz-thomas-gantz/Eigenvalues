@@ -1,4 +1,3 @@
-# TODO: clean 
 # TODO: 5., 6.
 # TODO: 7. (x,y are matrices ->heatmap with strongness is their value)
 # TODO: 8. (CG auf Matrizen ?)
@@ -26,6 +25,30 @@ function rand_schrodinger_1D(N)
 	
 	return L + v
 end
+
+function schrodinger_1D(N)
+	
+	# L
+	dv = 2  * ones(N)
+	ev = -1 * ones(N-1)
+	L  = SymTridiagonal(dv, ev)
+	
+	return L 
+end
+
+function potential_1D(N)
+
+    # v
+    dv = zeros(N)
+	for i in 1:N
+		dv[i] = rand((1.0,1/N^2))
+	end
+	v = Diagonal(dv)
+	
+	return v
+end
+
+
 
 ### Exercise 3 ###
 function CG(A, b, eps)
@@ -94,6 +117,25 @@ function deflation(A, x, eps, neig)
     return (Λ, Y)
 end
 
+# #####################
+# Two-dimensional case
+# #####################
+
+### Exercise 7 ###
+function Hmatvec(L, v, w, x)
+    N = size(L,1)
+    
+    y = L*x + x*L
+ 
+    for j1 in 1:N
+        for j2 in 1:N 
+                y[j1,j2] += v[j1,j1]*w[j2,j2]*x[j1,j2]
+        end
+    end
+
+    return y
+end
+
 
 
 # #####################
@@ -121,6 +163,17 @@ function main()
 	my_eigenvalues, my_eigenvectors = deflation(M, ones(N), 1e-6, 5)
 	println("TEST Deflation Algorithm: ", norm(jl_eigenvalues-my_eigenvalues) <= 1e-6)
 	
+    ### Exercise 7: TEST Hmatvec ###
+    x = rand(N * N)
+    x_matrix = reshape(x, N, N)'
+    L = schrodinger_1D(N)
+    v1 = potential_1D(N)
+    v2 = potential_1D(N)
+    @time y_hmatvec = Hmatvec(L, v1, v2, x_matrix) 
+    H = kron(I(N), L) + kron(L, I(N)) + kron(v1, v2)
+    @time y_kron = H * x
+    println("TEST Hmatvec: ", norm(vec(y_hmatvec') - y_kron) <= 1e-6)
+
 end
 
 
