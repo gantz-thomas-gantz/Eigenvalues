@@ -156,6 +156,41 @@ function CG_2(L, v, w, b, eps)
     return x
 end
 
+### Exercise 9 ###
+function deflation_2(L, v1, v2, x, eps, neig)
+    N = size(L, 1)
+    Λ = zeros(neig)             # Eigenvalue vector
+    Y = zeros(size(x)..., neig)
+    P = zeros(N*N,N*N)
+
+    for n in 1:neig
+        # Initial vector normalization
+        y = x / norm(x)
+        
+        # Solve for v using the CG method with more reasonable tolerance
+        Py = reshape(P * vec(y'), N, N)'
+        v = CG_2(L, v1, v2, y - Hmatvec(L, v1, v2, Py), 1e-8)
+        
+        # Compute initial eigenvalue estimate (Rayleigh quotient)
+        lambda = dot(vec(y'),vec(v'))
+        
+        # Convergence loop with relative tolerance check
+        while norm(v - lambda * y) / norm(v) > eps
+            y = v / norm(v)  # Re-normalize y
+            Py = reshape(P * vec(y'), N, N)'
+            v = CG_2(L, v1, v2, y - Hmatvec(L, v1, v2, Py), 1e-8)
+            lambda = dot(vec(y'),vec(v'))
+        end
+
+        # Store eigenvalue and eigenvector
+        Λ[n], Y[:,:,n] = 1 / lambda, y
+        
+        # Update the deflation matrix P using the outer product
+        P += lambda * (vec(y') * vec(y')')  # Outer product to update deflation matrix
+    end
+
+    return (Λ, Y)
+end
 
 
 
@@ -164,7 +199,7 @@ end
 # #####################
 function main()
 	
-    N = 50
+    N = 8
 	M = rand_schrodinger_1D(N)
 	eigenvalues = eigvals(M) 
 	
@@ -198,8 +233,15 @@ function main()
     ### Exercise 8: TEST CG_2 ###   
     println("TEST CG_2: ", norm( ones(N,N) - Hmatvec(L, v1, v2, CG_2(L, v1, v2, ones(N,N), 1e-6) ) ) <= 1e-6)
 
+    ### Exercise 9: TEST deflation_2 ###   
+    eigenvalues_H = eigvals(H)
+    jl_eigenvalues = sort(eigenvalues_H, by=abs)[1:5]
+    my_eigenvalues, my_eigenvectors = deflation_2(L, v1, v2, ones(N,N), 1e-6, 5)
+    println(jl_eigenvalues)
+    println(my_eigenvalues)
+    println("TEST deflation_2: ", norm(jl_eigenvalues-my_eigenvalues) <= 1e-6)
 
-
+    
 end
 
 
