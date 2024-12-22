@@ -136,6 +136,27 @@ function Hmatvec(L, v, w, x)
     return y
 end
 
+### Exercise 8 ###
+function CG_2(L, v, w, b, eps)
+    x = zeros(size(b))
+    p = b - Hmatvec(L, v, w, x)
+    rk_1 = p
+    rk = p
+
+    while norm(rk) > eps
+        Ap = Hmatvec(L, v, w, p)  
+        alpha = dot(rk_1, rk_1) / dot(p, Ap)
+        x += alpha * p
+        rk = rk_1 - alpha * Ap
+        omega = dot(rk, rk) / dot(rk_1, rk_1)
+        rk_1 = rk
+        p = rk + omega * p
+    end
+
+    return x
+end
+
+
 
 
 # #####################
@@ -173,6 +194,11 @@ function main()
     H = kron(I(N), L) + kron(L, I(N)) + kron(v1, v2)
     @time y_kron = H * x
     println("TEST Hmatvec: ", norm(vec(y_hmatvec') - y_kron) <= 1e-6)
+
+    ### Exercise 8: TEST CG_2 ###   
+    println("TEST CG_2: ", norm( ones(N,N) - Hmatvec(L, v1, v2, CG_2(L, v1, v2, ones(N,N), 1e-6) ) ) <= 1e-6)
+
+
 
 end
 
