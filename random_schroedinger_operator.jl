@@ -1,9 +1,5 @@
-# TODO: plot1 5., 6.
-# TODO: plot2 8., 9., 10.
-
-
 using LinearAlgebra, Random
-using Plots, LaTeXStrings, Printf, Measures
+using Plots, LaTeXStrings, Printf
 
 # #####################
 # One-dimensional case
@@ -71,12 +67,12 @@ end
 
 function inverse_power_method(A, x, eps)
     y = x / norm(x)
-    x = CG(A, y, 1e-20)
+    x = CG(A, y, 1e-8)
     l = dot(y, x)
 
     while norm(y - l * A * y) > eps
         y = x / norm(x)
-        x = CG(A, y, 1e-20) # no matrix inversion but solving a system
+        x = CG(A, y, 1e-8) # no matrix inversion but solving a system
         l = dot(y, x)
     end
 
@@ -122,19 +118,19 @@ function inverse_power_method_iterates(A, x, eps)
     Λ, Y = [], []
     
     y = x / norm(x)
-    x = CG(A, y, 1e-20)
+    x = CG(A, y, 1e-8)
     l = dot(y, x)
 
     append!(Λ,1/l) 
-    append!(Y,y)   
+    push!(Y, y)     
 
     while norm(y - l * A * y) > eps
         y = x / norm(x)
-        x = CG(A, y, 1e-20) # no matrix inversion but solving a system
+        x = CG(A, y, 1e-8) # no matrix inversion but solving a system
         l = dot(y, x)
 
         append!(Λ,1/l) 
-        append!(Y,y)  
+        push!(Y, y)   
     end
 
     return (Λ, Y)
@@ -265,7 +261,7 @@ function test()
   
 end
 
-function plot_convergence_1D()
+function plot_convergence()
 	
     ### Data ###
     N = 1000
@@ -275,25 +271,25 @@ function plot_convergence_1D()
 	### Exercise 5 : Analyse convergence ###
 	Λ_it, Y_it = inverse_power_method_iterates(M, ones(N), 1e-6)
     range = length(Λ_it)
-
-    # Y1_repeated = [Y[1] for _ in 1:range]
-    # p = plot(1:range, norm.(Y_it .- Y1_repeated), label=L"$||y^{(m)} - y_1||$")
-
-    # Create the first plot
-    s = floor(Int, range / 2)
-    e = s + floor(Int, range / 4)
-    p = plot(s:e, abs.(Λ_it .- (Λ[1] * ones(range)))[s:e], label=L"$|\lambda^{(m)} - \lambda_1|$")
-
-    # Create the second plot
+    
+    # Eigenvalues
+    p = plot(1:range, abs.(Λ_it .- (Λ[1] * ones(range))), label=L"$|\lambda^{(m)} - \lambda_1|$")
+    
+    # Eigenvectors
+    diff = zeros(range)
+    for i in 1:range
+        diff[i] = norm(Y_it[i] - Y_it[range])
+    end  
+    plot!(p, 1:range, diff, label=L"$||y^{(m)} - y_1||$")
+    
     a = abs((Λ[1] / Λ[2])) * ones(range)
-    b = [a[i]^(2*i) for i in 1:range]
-    b .= b * 0.07
-    plot!(p, s:e, b[s:e], label=L"$|\lambda_1 / \lambda_2|^m$")
-
+    b = [a[i]^(i) for i in 1:range]
+    plot!(p, 1:range, b, label=L"$|\lambda_1 / \lambda_2|^m$")
+    
     xlabel!(p, L"$m$")
-    ylabel!(p, "Value")
-    title!(p, "Convergence Analysis Inverse Power Method")
-    savefig(p, "Convergence Analysis Inverse Power Method (1D, N=$(N)).png")
+    ylabel!(p, "Error")
+    title!(p, "Convergence Inverse Power Method (N=$(N))") 
+    savefig(p, "Convergence Inverse Power Method (N=$(N)).png")
 
 end
 
