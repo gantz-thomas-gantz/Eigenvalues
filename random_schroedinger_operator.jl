@@ -1,9 +1,9 @@
-# TODO: 5., 6.
-# TODO: 7. (x,y are matrices ->heatmap with strongness is their value)
-# TODO: 8. (CG auf Matrizen ?)
+# TODO: plot1 5., 6.
+# TODO: plot2 8., 9., 10.
 
 
 using LinearAlgebra, Random
+using Plots, LaTeXStrings, Printf, Measures
 
 # #####################
 # One-dimensional case
@@ -117,6 +117,29 @@ function deflation(A, x, eps, neig)
     return (Λ, Y)
 end
 
+### Exercise 5 ###
+function inverse_power_method_iterates(A, x, eps)
+    Λ, Y = [], []
+    
+    y = x / norm(x)
+    x = CG(A, y, 1e-20)
+    l = dot(y, x)
+
+    append!(Λ,1/l) 
+    append!(Y,y)   
+
+    while norm(y - l * A * y) > eps
+        y = x / norm(x)
+        x = CG(A, y, 1e-20) # no matrix inversion but solving a system
+        l = dot(y, x)
+
+        append!(Λ,1/l) 
+        append!(Y,y)  
+    end
+
+    return (Λ, Y)
+end
+
 # #####################
 # Two-dimensional case
 # #####################
@@ -164,6 +187,7 @@ function deflation_2(L, v1, v2, x, eps, neig)
     P = zeros(N*N,N*N)
 
     for n in 1:neig
+        println(n)
         # Initial vector normalization
         y = x / norm(x)
         
@@ -197,9 +221,9 @@ end
 # #####################
 # MAIN
 # #####################
-function main()
+function test()
 	
-    N = 8
+    N = 20
 	M = rand_schrodinger_1D(N)
 	eigenvalues = eigvals(M) 
 	
@@ -237,10 +261,108 @@ function main()
     eigenvalues_H = eigvals(H)
     jl_eigenvalues = sort(eigenvalues_H, by=abs)[1:5]
     my_eigenvalues, my_eigenvectors = deflation_2(L, v1, v2, ones(N,N), 1e-6, 5)
-    println(jl_eigenvalues)
-    println(my_eigenvalues)
     println("TEST deflation_2: ", norm(jl_eigenvalues-my_eigenvalues) <= 1e-6)
+  
+end
 
+function plot_convergence_1D()
+	
+    ### Data ###
+    N = 1000
+	M = rand_schrodinger_1D(N)
+    Λ, Y = deflation(M, ones(N), 1e-6, 2)
+	
+	### Exercise 5 : Analyse convergence ###
+	Λ_it, Y_it = inverse_power_method_iterates(M, ones(N), 1e-6)
+    range = length(Λ_it)
+
+    # Y1_repeated = [Y[1] for _ in 1:range]
+    # p = plot(1:range, norm.(Y_it .- Y1_repeated), label=L"$||y^{(m)} - y_1||$")
+
+    # Create the first plot
+    s = floor(Int, range / 2)
+    e = s + floor(Int, range / 4)
+    p = plot(s:e, abs.(Λ_it .- (Λ[1] * ones(range)))[s:e], label=L"$|\lambda^{(m)} - \lambda_1|$")
+
+    # Create the second plot
+    a = abs((Λ[1] / Λ[2])) * ones(range)
+    b = [a[i]^(2*i) for i in 1:range]
+    b .= b * 0.07
+    plot!(p, s:e, b[s:e], label=L"$|\lambda_1 / \lambda_2|^m$")
+
+    xlabel!(p, L"$m$")
+    ylabel!(p, "Value")
+    title!(p, "Convergence Analysis Inverse Power Method")
+    savefig(p, "Convergence Analysis Inverse Power Method (1D, N=$(N)).png")
+
+end
+
+function plot_relation_1D()
+	
+    ### Data ###
+    N = 1000
+	M = rand_schrodinger_1D(N)
+	
+	### Exercise 2 : Solve ###
+	x = CG(M, ones(N), 1e-15)
+
+	### Exercise 6 : Compare ###
+	Λ, Y = deflation(M, ones(N), 1e-15, 5)
+
+    # Create the plot for the normalized solution x/||x||
+    p = plot(1:N, x/norm(x), label="x/||x||")
+    
+    # Plot the 5 eigenvectors with their corresponding eigenvalues
+    for i in 1:5  # Loop variable changed to I
+        plot!(p, 1:N, Y[i, :], label=@sprintf("λ_%d = %.3f", i, Λ[i]))
+    end
+    
+    # Customize the plot with labels, title, and legend
+    xlabel!(p, "Index")
+    ylabel!(p, "Value")
+    title!(p, L"Solution and Eigenvectors of $(L + v)x = 1$")
+    
+    # Save the plot as an image file
+    savefig(p, "Higher Impact of Lower Energy Levels (1D, N=$(N)).png")
+end
+
+function plot_relation_2D()
+	
+    for N in [50] 
+        
+        # , 100, 200]
+        
+        ### Data ###
+        L = schrodinger_1D(N)
+        v1 = potential_1D(N)
+        v2 = potential_1D(N)
+
+        ### Exercise 8: Solve ###   
+        x = CG_2(L, v1, v2, ones(N,N), 1e-6) 
+        plot_x = heatmap(x/norm(x), title="x/||x||", color=:viridis, xticks=([1, N], ["1", string(N)]), yticks=([1, N], ["1", string(N)]))
+
+        ### Exercise 9: Eigenvalues ###   
+        Λ, Y = deflation_2(L, v1, v2, ones(N,N), 1e-6, 5)
+
+        title_λ1 = @sprintf("λ₁ = %.3f", Λ[1])
+        title_λ2 = @sprintf("λ₂ = %.3f", Λ[2])
+        title_λ3 = @sprintf("λ₃ = %.3f", Λ[3])
+        title_λ4 = @sprintf("λ₄ = %.3f", Λ[4])
+        title_λ5 = @sprintf("λ₅ = %.3f", Λ[5])
+
+        nrows, ncols = size(Y[:,:,1])  # Hole die Dimensionen der Matrix
+        plot_Y1 = heatmap(Y[:,:,1], title=title_λ1, color=:viridis, xticks=([1, N], ["1", string(N)]), yticks=([1, N], ["1", string(N)]))
+        plot_Y2 = heatmap(Y[:,:,2], title=title_λ2, color=:viridis, xticks=([1, N], ["1", string(N)]), yticks=([1, N], ["1", string(N)]))
+        plot_Y3 = heatmap(Y[:,:,3], title=title_λ3, color=:viridis, xticks=([1, N], ["1", string(N)]), yticks=([1, N], ["1", string(N)]))
+        plot_Y4 = heatmap(Y[:,:,4], title=title_λ4, color=:viridis, xticks=([1, N], ["1", string(N)]), yticks=([1, N], ["1", string(N)]))
+        plot_Y5 = heatmap(Y[:,:,5], title=title_λ5, color=:viridis, xticks=([1, N], ["1", string(N)]), yticks=([1, N], ["1", string(N)]))
+      
+
+        ### Exercise 10: Compare ###   
+        p = plot(plot_x, plot_Y1, plot_Y2, plot_Y3, plot_Y4, plot_Y5) 
+        savefig(p, "Higher Impact of Lower Energy Levels (2D, N=$(N)).png")
+
+    end
     
 end
 
