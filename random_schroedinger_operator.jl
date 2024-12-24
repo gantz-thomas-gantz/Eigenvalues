@@ -183,22 +183,25 @@ function deflation_2(L, v1, v2, x, eps, neig)
     P = zeros(N*N,N*N)
 
     for n in 1:neig
-        println(n)
+        println("$n / $neig")
         # Initial vector normalization
         y = x / norm(x)
         
         # Solve for v using the CG method with more reasonable tolerance
         Py = reshape(P * vec(y'), N, N)'
-        v = CG_2(L, v1, v2, y - Hmatvec(L, v1, v2, Py), 1e-8)
+        v = CG_2(L, v1, v2, y - Hmatvec(L, v1, v2, Py), 1e-6)
         
         # Compute initial eigenvalue estimate (Rayleigh quotient)
         lambda = dot(vec(y'),vec(v'))
         
+        m = 0
         # Convergence loop with relative tolerance check
         while norm(v - lambda * y) / norm(v) > eps
+            m += 1
+            println(m)
             y = v / norm(v)  # Re-normalize y
             Py = reshape(P * vec(y'), N, N)'
-            v = CG_2(L, v1, v2, y - Hmatvec(L, v1, v2, Py), 1e-8)
+            v = CG_2(L, v1, v2, y - Hmatvec(L, v1, v2, Py), 1e-6)
             lambda = dot(vec(y'),vec(v'))
         end
 
@@ -324,9 +327,7 @@ end
 
 function plot_relation_2D()
 	
-    for N in [50] 
-        
-        # , 100, 200]
+    for N in [50, 100, 200]
         
         ### Data ###
         L = schrodinger_1D(N)
@@ -334,11 +335,11 @@ function plot_relation_2D()
         v2 = potential_1D(N)
 
         ### Exercise 8: Solve ###   
-        x = CG_2(L, v1, v2, ones(N,N), 1e-6) 
+        x = CG_2(L, v1, v2, ones(N,N), 1e-4) 
         plot_x = heatmap(x/norm(x), title="x/||x||", color=:viridis, xticks=([1, N], ["1", string(N)]), yticks=([1, N], ["1", string(N)]))
 
         ### Exercise 9: Eigenvalues ###   
-        Λ, Y = deflation_2(L, v1, v2, ones(N,N), 1e-6, 5)
+        Λ, Y = deflation_2(L, v1, v2, ones(N,N), 1e-4, 5)
 
         title_λ1 = @sprintf("λ₁ = %.3f", Λ[1])
         title_λ2 = @sprintf("λ₂ = %.3f", Λ[2])
