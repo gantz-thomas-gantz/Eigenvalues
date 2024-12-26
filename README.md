@@ -1,4 +1,3 @@
-```markdown
 # Eigenvalue Solvers and Schrödinger Equation Analysis in Julia
 
 This repository contains implementations of numerical methods for solving eigenvalue problems and linear systems. The methods include Conjugate Gradient (CG), Inverse Power Method, and Deflation. The code also includes visualization functions for analyzing the behavior of eigenvalues and eigenvectors, both in one-dimensional (1D) and two-dimensional (2D) cases.
