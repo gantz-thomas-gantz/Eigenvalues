@@ -1,6 +1,6 @@
 # Eigenvalue Solvers and random Schrödinger operator in Julia
 
-This repository contains implementations of numerical methods for solving eigenvalue problems and linear systems. The methods include Conjugate Gradient (CG), Inverse Power Method, and Deflation. The code also includes visualization functions for analyzing the behavior of eigenvalues and eigenvectors, both in one-dimensional (1D) and two-dimensional (2D) cases.
+This work contains implementations of numerical methods for solving eigenvalue problems and linear systems. The methods include Conjugate Gradient (CG), Inverse Power Method, and Deflation. The code also includes visualization functions for analyzing the behavior of eigenvalues and eigenvectors, both in one-dimensional (1D) and two-dimensional (2D) cases.
 
 ## Requirements
 
@@ -42,7 +42,7 @@ The main code is divided into the following sections:
 
 ### Test
 
-To run the main tests, including verifying the correctness of each algorithm and visualizing the results, execute the following function in the REPL:
+To run the main tests, verifying the correctness of each algorithm, execute the following function:
 ```julia
 test()
 ```
